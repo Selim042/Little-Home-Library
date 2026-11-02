@@ -37,7 +37,7 @@ public class ScanDexLookupStrategy implements ItemLookupStrategy {
 		String cleanBarcode = barcode.replaceAll("[^0-9]", "").trim();
 		try {
 			// Path-slash structured ScanDex API lookup endpoint
-			String url = "BASE URL https://scandex.gamery.app/api/v2/lookup?value=" + cleanBarcode;
+			String url = "https://scandex.gamery.app/api/v2/lookup?value=" + cleanBarcode;
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.set("Authorization", apiKey.trim());
