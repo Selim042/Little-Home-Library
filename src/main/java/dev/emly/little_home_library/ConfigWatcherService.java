@@ -85,6 +85,7 @@ public class ConfigWatcherService {
 			// definitions mapping targets
 			kioskProperties.setAutoLogoutMs(environment.getProperty("autoLogoutMs", Long.class, 120000L));
 			kioskProperties.setDiscordWebhook(environment.getProperty("discordWebhook", ""));
+			kioskProperties.setScandexApiKey(environment.getProperty("scandexApiKey", ""));
 			kioskProperties.setRentalCategories(environment.getProperty("rentalCategories", Map.class, new HashMap<>()));
 
 			System.out.println("Hot-Swap complete! Rental windows and limits are now live.");

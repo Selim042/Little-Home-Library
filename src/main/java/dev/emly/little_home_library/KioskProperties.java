@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 public class KioskProperties {
 	private long autoLogoutMs = 120000;
 	private String discordWebhook = "";
+	private String scandexApiKey = ""; // Added for authorization token storage
 	private List<String> allowedUsers = new ArrayList<>();
 	private Map<String, CategoryDetails> rentalCategories = new HashMap<>(); // Updated to nested map structures
 
@@ -81,6 +82,14 @@ public class KioskProperties {
 
 	public void setDiscordWebhook(String discordWebhook) {
 		this.discordWebhook = discordWebhook;
+	}
+
+	public String getScandexApiKey() {
+		return scandexApiKey;
+	}
+
+	public void setScandexApiKey(String scandexApiKey) {
+		this.scandexApiKey = scandexApiKey;
 	}
 
 	public List<String> getAllowedUsers() {
