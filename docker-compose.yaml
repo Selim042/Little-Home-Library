@@ -1,0 +1,17 @@
+services:
+  little-library-kiosk:
+    build: .
+    container_name: library_kiosk_station
+    ports:
+      # Exposes standard browser HTTP traffic over your host machine local port 80
+      - "8080:8080"
+    environment:
+      - DATA_DIR=/app/data
+      # Instructs Spring Framework context rules to track hot-swap YAML layers
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=file:/app/data/kiosk-config.yml
+      # Sets system clock boundaries so scheduled notifications map correctly
+      - TZ=America/New_York
+    volumes:
+      # Persistent storage mount point mapping. Tracks library_db file and kiosk-config.yml
+      - ./data:/app/data
+    restart: unless-stopped

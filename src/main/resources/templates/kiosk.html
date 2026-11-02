@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+    <title>Library Kiosk Station</title>
+    <style>
+        body { font-family: sans-serif; background: #1a202c; color: white; margin: 40px; text-align: center; }
+        .card { background: #2d3748; padding: 30px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        input, select { background: #4a5568; border: none; padding: 15px; color: white; width: 80%; font-size: 18px; border-radius: 5px; text-align: center; margin-bottom: 20px;}
+        select { text-align-last: center; width: 85%; }
+        .item-list { text-align: left; margin-top: 20px; background: #3b4252; padding: 15px; border-radius: 8px;}
+        .badge { background: #ed64a6; padding: 3px 8px; border-radius: 3px; font-size: 12px; font-weight: bold;}
+        ul { list-style: none; padding: 0; }
+        li { background: #434c5e; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between;}
+        
+        /* Modal Window Layout Overlays */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #2d3748; padding: 40px; border-radius: 12px; border: 2px solid #4a5568; max-width: 500px; width: 90%; }
+        .btn { background: #2b6cb0; color: white; padding: 12px 25px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;}
+        .btn-cancel { background: #4a5568; margin-left: 10px; text-decoration: none; color: white; padding: 12px 20px; border-radius: 5px; font-weight: bold; font-size: 16px;}
+    </style>
+</head>
+<body>
+
+    <!-- INTERACTIVE UNKNOWN BARCODE DIALOG MODAL POPUP -->
+    <div class="modal-overlay" th:if="${unknownBarcode != null}">
+        <div class="modal-content">
+            <h2 style="color: #ed64a6; margin-top: 0;">✨ New Item Discovered!</h2>
+            <p style="color: #cbd5e0;">Barcode code: <code style="background:#1a202c; padding:3px 6px; border-radius:3px;" th:text="${unknownBarcode}"></code></p>
+            <p>Please enter metadata parameters manually to record and check out this item:</p>
+            
+            <form method="POST" action="/kiosk/manual-save">
+                <!-- Keep barcode locked in a hidden input form variable slot -->
+                <input type="hidden" name="barcode" th:value="${unknownBarcode}">
+                
+                <input type="text" name="title" placeholder="Item Title / Name" required autocomplete="off"><br>
+                <input type="text" name="author" placeholder="Author / Publisher / Studio" required autocomplete="off"><br>
+                
+                <select name="category" required>
+                    <option value="" disabled selected>-- Select Type / Category --</option>
+                    <option th:each="cat : ${categories}" th:value="${cat}" th:text="${#strings.toUpperCase(cat)}"></option>
+                </select><br>
+                
+                <button type="submit" class="btn">Register & Check Out</button>
+                <a href="/kiosk" class="btn-cancel">Cancel</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN IDLE TERMINAL VIEW -->
+    <div class="card" th:if="${activeUser == null}">
+        <h1>STATION READY</h1>
+        <p>Please scan your Library Card Barcode to access station</p>
+        <form method="POST" action="/kiosk/login">
+            <input type="text" name="barcode" id="scanField" autocomplete="off" autofocus>
+        </form>
+    </div>
+
+    <!-- MAIN ACTIVE ACCOUNT PANEL VIEW -->
+    <div class="card" th:if="${activeUser != null}">
+        <h2>Account Session: <span th:text="${activeUser}"></span></h2>
+        <p>Scan an asset code to Check Out or Return</p>
+        
+        <form method="POST" action="/kiosk/scan">
+            <!-- Ensure scan text entry disables itself if popup modal overlay is rendering on screen -->
+            <input type="text" name="barcode" id="scanField" autocomplete="off" th:disabled="${unknownBarcode != null}" autofocus>
+        </form>
+
+        <div th:if="${scanError}" style="background: #dd6b20; color: white; padding: 12px; border-radius: 5px; max-width: 500px; margin: 10px auto; font-weight: bold;">
+            <span th:text="${scanError}"></span>
+        </div>
+
+        <div class="item-list" th:if="${lastItem != null}">
+            <div style="display: flex; align-items: center;">
+                <img th:if="${lastItem.coverUrl != ''}" th:src="${lastItem.coverUrl}" width="80" height="110" style="border-radius:4px; margin-right:15px;"/>
+                <div style="text-align: left;">
+                    <h3 style="margin:0;" th:text="${lastItem.title}"></h3>
+                    <p style="margin:5px 0; color:#d8dee9;" th:text="'By: ' + ${lastItem.author}"></p>
+                    <span class="badge" th:text="${lastItem.category}"></span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: left; margin-top: 20px;">
+            <h3>Active Loans List:</h3>
+            <ul>
+                <li th:each="rental : ${rentals}">
+                    <span style="font-weight: bold;" th:text="${rental.cachedItem != null ? rental.cachedItem.title : rental.isbn}"></span>
+                    <span class="badge" th:if="${rental.cachedItem != null}" th:text="${rental.cachedItem.category}" style="margin-left: 10px;"></span>
+                    <span style="color:#a3be8c;">Active Loan</span>
+                </li>
+            </ul>
+        </div>
+        <br>
+        <a href="/kiosk/logout" style="color: #bf616a; text-decoration: none; font-weight: bold;">[ Terminate Active Session ]</a>
+    </div>
+
+    <script th:inline="javascript">
+        // Keep text inputs focused automatically (disabled if popup handles active focus fields instead)
+        document.addEventListener('click', () => {
+            const field = document.getElementById('scanField');
+            if(field && !field.disabled) field.focus();
+        });
+        
+        let timeoutVal = /*[[${autoLogoutMs}]]*/ 120000;
+        let activeUser = /*[[${activeUser}]]*/ null;
+        let isModalActive = /*[[${unknownBarcode != null}]]*/ false;
+
+        // --- PAUSE WATCHDOG TIMER IF MANUAL POPUP MODAL DIALOG DISPLAY IS ENGAGED ---
+        if(activeUser !== null && timeoutVal > 0 && !isModalActive) {
+            setTimeout(() => { window.location.href = '/kiosk/logout'; }, timeoutVal);
+        }
+    </script>
+</body>
+</html>
