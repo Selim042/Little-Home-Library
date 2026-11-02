@@ -47,20 +47,14 @@ public class ScanDexLookupStrategy implements ItemLookupStrategy {
 			ResponseEntity<Map> responseEntity = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 			Map<String, Object> response = responseEntity.getBody();
 
-			if (response != null && response.containsKey("title")) {
-				String title = response.get("title").toString();
-				String platform = response.getOrDefault("platform", "Video Game").toString();
+			if (response != null && response.containsKey("igdb_metadata")) {
+				Map<String, Object> igdb = (Map<String, Object>) response.get("igdb_metadata");
+				String title = igdb.get("name").toString();
+				Map<String, Object> igdb_platform = (Map<String, Object>) igdb.get("platform");
+				String platform = (String) igdb_platform.get("name");
 				String category = "game";
 				String releaseDate = "N/A";
 				String coverUrl = "";
-
-				if (response.containsKey("igdb_metadata")) {
-					Map<String, Object> igdb = (Map<String, Object>) response.get("igdb_metadata");
-					if (igdb != null && igdb.containsKey("id")) {
-						String igdbId = igdb.get("id").toString();
-//						coverUrl = "https://igdb.com/" + igdbId + ".jpg";
-					}
-				}
 
 				return Optional.of(new ItemDetails(title, platform, category, releaseDate, coverUrl));
 			}
